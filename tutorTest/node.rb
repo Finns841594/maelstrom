@@ -7,9 +7,12 @@ class Node
     @node_id = nil
     @node_ids = nil
     @next_msg_id = 0
+
     @lock = Monitor.new
     @log_lock = Mutex.new
+
     @handlers = {}
+    @callbacks = {}
 
     # Register an initial handler for the init message
     on "init" do |msg|
@@ -66,28 +69,44 @@ class Node
     msg
   end
 
+  # Send an async RPC request. Invokes block with response message once one arrives.
+  def rpc!(dest, body, &handler)
+    @lock.synchronize do
+      msg_id = @next_msg_id += 1
+      @callbacks[msg_id] = handler
+      body = body.merge({msg_id: msg_id})
+      send! dest, body
+    end
+  end
+
   # Loops, processing messages from STDIN
   def main!
+    Thread.abort_on_exception = true
+
     while line = STDIN.gets
       msg = parse_msg line
       log "Received #{msg.inspect}"
 
+      # What handler should we use for this message?
       handler = nil
       @lock.synchronize do
-        if handler = @handlers[msg[:body][:type]]
-          # Good!
+        if handler = @callbacks[msg[:body][:in_reply_to]] 
+          @callbacks.delete msg[:body][:in_reply_to]      
+        elsif handler = @handlers[msg[:body][:type]]
         else
           raise "No handler for #{msg.inspect}"
         end
       end
 
-      begin
-        handler.call msg
-      rescue => e
-        log "Exception handling #{msg}:\n#{e.full_message}"
-      end
+      # Actually handle message
+      # Thread.new(handler, msg) do |handler, msg|
+        begin
+          handler.call msg
+        rescue => e
+          log "Exception handling #{msg}:\n#{e.full_message}"
+        end
+      # end
+
     end
   end
-
-
 end
