@@ -1,19 +1,18 @@
-#!/usr/bin/node
+#!/opt/homebrew/bin/node
 
 // The node object provides support for reading messages from STDIN, writing
 // them to STDOUT, keeping track of basic state, writing pluggable handlers for
 // client RPC requests, and sending our own RPCs.
 
-exports.nodeId = "";
+exports.nodeId = '';
 
 // For console IO
 var readline = require('readline');
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  terminal: false
+  terminal: false,
 });
-
 
 // STATE ///////////////////////////////////////////////////////////////////
 
@@ -36,12 +35,12 @@ var handlers = {};
 // UTILITIES //////////////////////////////////////////////////////////////
 
 // Our own node ID
-exports.nodeId = function() {
+exports.nodeId = function () {
   return nodeId;
 };
 
 // All node IDs
-exports.nodeIds = function() {
+exports.nodeIds = function () {
   return nodeIds;
 };
 
@@ -50,46 +49,49 @@ function newMsgId() {
   let id = nextMsgId;
   nextMsgId += 1;
   return id;
-};
+}
 exports.newMsgId = newMsgId;
 
 // IO /////////////////////////////////////////////////////////////////////
 
 // Send a message body to the given node.
 function send(dest, body) {
-  let msg = {src: nodeId, dest: dest, body: body};
-  console.warn("Sending", msg);
+  let msg = { src: nodeId, dest: dest, body: body };
+  console.warn('Sending', msg);
   console.log(JSON.stringify(msg));
-};
+}
 exports.send = send;
 
 // Reply to a request with a given response body.
 function reply(req, body) {
   if (req.body.msg_id == undefined) {
-    throw {code: 13,
-           text: "Can't reply to request without message id: " +
-                 JSON.stringify(req)};
+    throw {
+      code: 13,
+      text: "Can't reply to request without message id: " + JSON.stringify(req),
+    };
   }
-  let body2 = {... body, in_reply_to: req.body.msg_id};
+  let body2 = { ...body, in_reply_to: req.body.msg_id };
   send(req.src, body2);
-};
+}
 exports.reply = reply;
 
 // Send an RPC request, returning a promise of a response which will be
 // delivered a response body.
 function rpc(dest, body) {
   let msgId = newMsgId();
-  let body2 = {... body, msg_id: msgId};
+  let body2 = { ...body, msg_id: msgId };
   let promise = new Promise((resolve, reject) => {
     // Save promise delivery functions for later
-    replyHandlers.set(msgId, {resolve: resolve, reject: reject});
+    replyHandlers.set(msgId, { resolve: resolve, reject: reject });
     // Time out RPC
     setTimeout(() => {
       replyHandlers.delete(msgId);
-      reject({type: 'error',
+      reject({
+        type: 'error',
         in_reply_to: msgId,
         code: 0,
-        text: 'RPC request timed out'});
+        text: 'RPC request timed out',
+      });
     }, rpcTimeout);
   });
   // And send request
@@ -100,8 +102,8 @@ exports.rpc = rpc;
 
 // Send an RPC request, and if it fails, retry it forever.
 function retryRPC(dest, body) {
-  return rpc(dest, body).catch((err) => {
-    console.warn("Retrying RPC request to", dest, body);
+  return rpc(dest, body).catch(err => {
+    console.warn('Retrying RPC request to', dest, body);
     return retryRPC(dest, body);
   });
 }
@@ -110,7 +112,7 @@ exports.retryRPC = retryRPC;
 // REQUEST HANDLING ///////////////////////////////////////////////////////
 
 // Register a handler for a given message type.
-exports.on = function(type, handler) {
+exports.on = function (type, handler) {
   handlers[type] = handler;
 };
 
@@ -119,8 +121,8 @@ function handleInit(req) {
   body = req.body;
   nodeId = body.node_id;
   nodeIds = body.node_ids;
-  console.warn("Node", nodeId, "initialized");
-};
+  console.warn('Node', nodeId, 'initialized');
+}
 
 // Sends an error back to the client
 function maybeReplyError(req, err) {
@@ -128,13 +130,13 @@ function maybeReplyError(req, err) {
     // We can reply
     if (err.code != undefined) {
       // We have an explicitly tagged error code
-      reply(req, {... err, type: 'error'});
+      reply(req, { ...err, type: 'error' });
     } else {
       // Reply with a generic error
       reply(req, {
         type: 'error',
         code: 13,
-        text: String(err)
+        text: String(err),
       });
     }
   }
@@ -162,7 +164,7 @@ function handle(req) {
     }
 
     let type = body.type;
-    if (type == "init") {
+    if (type == 'init') {
       // Special case: we call our special init handler, then a custom handler
       // if available, then ack.
       handleInit(req);
@@ -170,24 +172,25 @@ function handle(req) {
       if (handler != undefined) {
         handler(req);
       }
-      reply(req, {type: 'init_ok'});
+      reply(req, { type: 'init_ok' });
       return;
     }
 
     // Look up a handler for this type of message
     let handler = handlers[type];
     if (handler == undefined) {
-      console.warn("Don't know how to handle msg type", type, "(", req, ")");
-      reply(req, {type: 'error',
+      console.warn("Don't know how to handle msg type", type, '(', req, ')');
+      reply(req, {
+        type: 'error',
         code: 10,
-        text: 'unsupported request type ' + type
+        text: 'unsupported request type ' + type,
       });
     } else {
       // Good, we have a handler; invoke it with our request.
       if (handler.constructor.name === 'AsyncFunction') {
         // For async handlers, attach an exception handler
-        handler(req).catch((err) => {
-          console.warn("Error processing async request", req, err);
+        handler(req).catch(err => {
+          console.warn('Error processing async request', req, err);
           maybeReplyError(req, err);
         });
       } else {
@@ -196,14 +199,14 @@ function handle(req) {
       }
     }
   } catch (err) {
-    console.warn("Error processing request", err);
+    console.warn('Error processing request', err);
     maybeReplyError(req, err);
   }
-};
+}
 
-exports.main = function() {
-  rl.on('line', function(line) {
-    console.warn("Got", line);
+exports.main = function () {
+  rl.on('line', function (line) {
+    console.warn('Got', line);
     handle(JSON.parse(line));
   });
 };
