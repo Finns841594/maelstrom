@@ -11,8 +11,16 @@ const handlers = {};
 
 let nodeId = '';
 let nodeIds = [];
+let nextMsgId = 0;
 exports.nodeId = nodeId;
 exports.nodeIds = nodeIds;
+
+const newMsgId = () => {
+  let id = nextMsgId;
+  nextMsgId += 1;
+  return id;
+};
+exports.newMsgId = newMsgId;
 
 const handleInit = req => {
   body = req.body;

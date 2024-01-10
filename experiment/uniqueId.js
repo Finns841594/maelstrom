@@ -1,12 +1,12 @@
 #!/opt/homebrew/bin/node
 
 const node = require('./node');
-const generatedId = 0;
 
 node.on('generate', req => {
-  generatedId++;
-  console.log('new id: ', generatedId);
-  node.reply(req, { type: 'generate_ok', id: generatedId });
+  node.reply(req, { type: 'generate_ok', id: crypto.randomUUID() });
 });
 
 node.main();
+
+// save a test string here for future easy use
+// {"src": "c1","dest": "n1","body": {"type": "generate","msg_id": 1}}
