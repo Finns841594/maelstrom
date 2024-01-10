@@ -98,15 +98,15 @@ class Node
         end
       end
 
+      
       # Actually handle message
-      # Thread.new(handler, msg) do |handler, msg|
+      Thread.new(handler, msg) do |handler, msg|
         begin
           handler.call msg
         rescue => e
           log "Exception handling #{msg}:\n#{e.full_message}"
         end
-      # end
-
+      end
     end
   end
 end
