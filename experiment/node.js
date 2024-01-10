@@ -7,13 +7,11 @@ const rl = readline.createInterface({
   terminal: false,
 });
 
-// A map of request message types to functions which handle them.
 const handlers = {};
 
 let nodeId = '';
 let nodeIds = [];
 
-// Handle an init request
 const handleInit = req => {
   body = req.body;
   nodeId = body.node_id;
@@ -23,6 +21,7 @@ const handleInit = req => {
 
 const send = (dest, body) => {
   const msg = { src: nodeId, dest: dest, body: body };
+  console.warn('Sending', msg);
   console.log(JSON.stringify(msg));
 };
 exports.send = send;
@@ -33,7 +32,6 @@ const reply = (req, body) => {
 };
 exports.reply = reply;
 
-// Handle a request
 const handle = req => {
   const body = req.body;
   try {
@@ -43,7 +41,6 @@ const handle = req => {
       reply(req, { type: 'init_ok' });
       return;
     }
-    // reply(req, { type: 'echo_ok', echo: req.body.echo });
     const handler = handlers[type];
     handler(req);
   } catch (err) {
@@ -51,7 +48,6 @@ const handle = req => {
   }
 };
 
-// Register a handler for a given message type.
 exports.on = (type, handler) => {
   handlers[type] = handler;
 };
