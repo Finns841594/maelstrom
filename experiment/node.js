@@ -11,6 +11,8 @@ const handlers = {};
 
 let nodeId = '';
 let nodeIds = [];
+exports.nodeId = nodeId;
+exports.nodeIds = nodeIds;
 
 const handleInit = req => {
   body = req.body;
