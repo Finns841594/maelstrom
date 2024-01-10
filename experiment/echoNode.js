@@ -11,7 +11,6 @@ const nodeId = 'n0';
 
 const send = (dest, body) => {
   const msg = { src: nodeId, dest: dest, body: body };
-  // console.warn('Sending', msg);
   console.log(JSON.stringify(msg));
 };
 
